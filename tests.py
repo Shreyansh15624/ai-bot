@@ -38,7 +38,7 @@ print("-------------------------------------------------------------")
 """
 
 
-
+"""
 print(run_python_file("calculator", "main.py"))
 print("-------------------------------------------------------------")
 print(run_python_file("calculator", "main.py", ["3 + 5"]))
@@ -51,3 +51,5 @@ print(run_python_file("calculator", "nonexistent.py"))
 print("-------------------------------------------------------------")
 print(run_python_file("calculator", "lorem.txt"))
 print("-------------------------------------------------------------")
+"""
+

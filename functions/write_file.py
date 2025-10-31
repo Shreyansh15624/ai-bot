@@ -5,7 +5,7 @@ def write_file(working_directory, file_path, content):
     joint_directory = os.path.join(working_directory, file_path)
     abs_path = os.path.abspath(joint_directory)
     if working_directory not in abs_path:
-        return f'Error: Cannot read "{file_path}" as it is outside the permitted working directory'
+        return f'Error: Cannot write / write to "{file_path}" as it is outside the permitted working directory'
     try:
         os.path.exists(file_path)
     except FileExistsError:
@@ -16,7 +16,7 @@ def write_file(working_directory, file_path, content):
 
 schema_write_file = types.FunctionDeclaration(
     name="write_file",
-    description="Writes to the specificed file in the specified directory, constrained to the working directory.",
+    description="Writes to the specified file in the specified directory, constrained to the working directory.",
     parameters=types.Schema(
         type=types.Type.OBJECT,
         properties={

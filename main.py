@@ -112,15 +112,11 @@ def call_function(function_call_part, working_directory, verbose=False):
 user_prompt = arguments[1]
 
 
-messages = [
-    types.Content(role="user", parts=[types.Part(text=user_prompt)]),
-]
-count = 0
-for i in range(3):
-    count += 1
-    print(f"-----------------------------------------------------\nLoop Count: {count}")
-    for message in messages:
-        print(f"message:\n{messages}\n")
+messages = [types.Content(role="user", parts=[types.Part(text=user_prompt)]), ]
+for message in messages:
+    print(f"message:\n{messages}\n")
+print("DEBUG: About to start main loop")
+for i in range(20):
     response = client.models.generate_content(
         model='gemini-2.0-flash-001',
         contents=messages,
@@ -136,10 +132,11 @@ for i in range(3):
         print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
         print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
     print(f"\nModel's response.text:\n{response.text}")
-    messages.append(response.text)
+    for candidate in response.candidates:
+        messages.append(candidate.content)
     # print(f"\nresponse.function_calls:\n{response.function_calls}")
-
-    if response.function_calls is not None:
+    function_call_responses = []
+    if response.function_calls:
         for function_call_part in response.function_calls:
             print(f"Calling function: {function_call_part.name}({function_call_part.args})")
             arg_dict = {
@@ -148,11 +145,17 @@ for i in range(3):
                 "verbose" : verbose,
             }
             # print("\n")
-            print(call_function(**arg_dict))
-        new_user_input = str(input("Enter your next Prompt: "))
-        if new_user_input == "end-chain":
-            break
-        new_user_prompt = types.Content(role="user", parts=[types.Part(text=new_user_input)])
-        messages.append(new_user_prompt)
+            function_call_result = call_function(**arg_dict)
+            print(function_call_result)
+            call_responses = types.Part.from_function_response(
+                name=function_call_part.name,
+                response={"result": function_call_result}
+            )
+            function_call_responses.append(call_responses)
+        packaged_function_call_result = types.Content(
+            role="user",
+            parts=function_call_responses
+        )
+        messages.append(packaged_function_call_result)
 
 sys.exit(0)

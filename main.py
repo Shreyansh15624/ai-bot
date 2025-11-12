@@ -74,7 +74,7 @@ def call_function(function_call_part, working_directory, verbose=False):
             case available_functions_enum.get_files_info.name:
                 arg_dict_2 = {
                     "working_directory" : working_directory,
-                    "directory" : function_call_part.args["directory"]
+                    "directory" : (function_call_part.args["directory"] if "directory" in function_call_part.args else ".")
                 }
                 function_result = available_functions_dict[function_call_part.name](**arg_dict_2)
             case available_functions_enum.run_python_file.name:
@@ -128,10 +128,10 @@ for i in range(20):
     verbose = False
     if '--verbose' in arguments:
         verbose = True
+        print("------------------------------------------------------------------")
         print(f"User prompt: {user_prompt}")
         print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
         print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
-    print(f"\nModel's response.text:\n{response.text}")
     for candidate in response.candidates:
         messages.append(candidate.content)
     # print(f"\nresponse.function_calls:\n{response.function_calls}")
@@ -157,5 +157,9 @@ for i in range(20):
             parts=function_call_responses
         )
         messages.append(packaged_function_call_result)
+    else:
+        if response.text:
+            print(f"\nModel's response.text:\n{response.text}")
+            break
 
 sys.exit(0)

@@ -115,32 +115,44 @@ user_prompt = arguments[1]
 messages = [
     types.Content(role="user", parts=[types.Part(text=user_prompt)]),
 ]
+count = 0
+for i in range(3):
+    count += 1
+    print(f"-----------------------------------------------------\nLoop Count: {count}")
+    for message in messages:
+        print(f"message:\n{messages}\n")
+    response = client.models.generate_content(
+        model='gemini-2.0-flash-001',
+        contents=messages,
+        config=types.GenerateContentConfig(
+            tools=[available_functions],
+            system_instruction=system_prompt
+        ),
+    )
+    verbose = False
+    if '--verbose' in arguments:
+        verbose = True
+        print(f"User prompt: {user_prompt}")
+        print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
+        print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+    print(f"\nModel's response.text:\n{response.text}")
+    messages.append(response.text)
+    # print(f"\nresponse.function_calls:\n{response.function_calls}")
 
-
-response = client.models.generate_content(
-    model='gemini-2.0-flash-001',
-    contents=messages,
-    config=types.GenerateContentConfig(tools=[available_functions],system_instruction=system_prompt),
-)
-verbose = False
-if '--verbose' in arguments:
-    verbose = True
-    # print(f"User prompt: {user_prompt}")
-    # print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
-    # print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
-# print(f"\nModel's response.text:\n{response.text}")
-# print(f"\nresponse.function_calls:\n{response.function_calls}")
-
-
-for function_call_part in response.function_calls:
-    # print(f"Calling function: {function_call_part.name}({function_call_part.args})")
-    arg_dict = {
-        "function_call_part" : function_call_part,
-        "working_directory" : "calculator",
-        "verbose" : verbose,
-    }
-    
-    # print("\n")
-    print(call_function(**arg_dict))
+    if response.function_calls is not None:
+        for function_call_part in response.function_calls:
+            print(f"Calling function: {function_call_part.name}({function_call_part.args})")
+            arg_dict = {
+                "function_call_part" : function_call_part,
+                "working_directory" : "calculator",
+                "verbose" : verbose,
+            }
+            # print("\n")
+            print(call_function(**arg_dict))
+        new_user_input = str(input("Enter your next Prompt: "))
+        if new_user_input == "end-chain":
+            break
+        new_user_prompt = types.Content(role="user", parts=[types.Part(text=new_user_input)])
+        messages.append(new_user_prompt)
 
 sys.exit(0)

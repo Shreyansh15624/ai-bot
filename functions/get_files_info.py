@@ -1,6 +1,8 @@
 import os
 from google.genai import types
 
+# Descrption for the function listed in the schema section at the bottom, check out that!
+# And, comments left for easy debugging purposes
 def get_files_info(working_directory, directory="."):
     joint_directory = os.path.join(working_directory, directory)
     if working_directory not in os.path.abspath(joint_directory):

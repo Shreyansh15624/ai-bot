@@ -1,7 +1,9 @@
 import os
-from functions.config import MAX_CHARS
+from functions.config import MAX_CHARS # For limiting the tokens fed to AI, cost effective also!
 from google.genai import types
 
+# Descrption for the function listed in the schema section at the bottom, check out that!
+# And, comments left for easy debugging purposes
 def get_file_content(working_directory, file_path):
     # print(f"working_directory: {working_directory}")
     # print(f"file_path: {file_path}")
@@ -14,13 +16,7 @@ def get_file_content(working_directory, file_path):
     if working_directory not in abs_path:
         return f'Error: Cannot read "{file_path}" as it is outside the permitted working directory'
     if not os.path.isfile(joint_directory):
-        # joint_directory_path = joint_directory.split("/")
-        # print(joint_directory_path)
-        # new_working_directory = "/".join(joint_directory_path[:-1])
-        # print(f"new_working_directory: {new_working_directory}")
         # print(f"joint_directory: {joint_directory}")
-        # directories_2 = os.listdir(new_working_directory)
-        # print(directories_2)
         return f'Error: File not found or is not a regular file: "{file_path}"'
     with open(abs_path, 'r') as f:
         file_content_string = f.read(MAX_CHARS+1)

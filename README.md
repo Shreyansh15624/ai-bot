@@ -72,7 +72,7 @@ The agent needs to be configured with your API keys.
 
 1.  Create a `.env` file in the root directory:
     ```sh
-    touch .env
+    touch .env # use a different command for windows
     ```
 
 2.  Add your API keys and any other environment variables to the `.env` file:

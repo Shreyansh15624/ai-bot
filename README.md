@@ -15,8 +15,8 @@ From the project structure, it looks like this agent includes:
 ## 🛠️ Tech Stack
 
 * **Language:** Python
-* **Package Management:** [uv (inferred from `uv.lock` and `pyproject.toml`)]
-* **Testing:** [pytest (inferred from `tests.py`)]
+* **Package Management:** uv
+* **Testing:** pytest
 
 ## 🚀 Getting Started
 
@@ -26,7 +26,7 @@ Here's how to get a local copy up and running.
 
 Before you begin, make sure you have the following installed:
 
-* **Python:** This project uses Python `[...check your .python-version file, e.g., 3.11+]`.
+* **Python:** This project uses `python3.14`.
 * **uv:** This project uses `uv` for package management. You can install it with:
     ```sh
     pip install uv

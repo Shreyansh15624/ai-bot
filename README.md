@@ -38,7 +38,7 @@ Before you begin, make sure you have the following installed:
 
 1.  **Clone the repository:**
     ```sh
-    git clone [https://github.com/Shreyansh15624/ai-bot.git](https://github.com/Shreyansh15624/ai-bot.git)
+    git clone https://github.com/Shreyansh15624/ai-bot.git
     cd ai-bot
     ```
 

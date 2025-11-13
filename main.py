@@ -8,10 +8,13 @@ from functions.get_file_content import get_file_content, schema_get_file_content
 from functions.write_file import write_file, schema_write_file
 from functions.run_python_file import run_python_file, schema_run_python_file
 from enum import Enum
-load_dotenv()
-api_key = os.environ.get("GEMINI_API_KEY")
-client = genai.Client(api_key=api_key)
 
+
+load_dotenv()
+api_key = os.environ.get("GEMINI_API_KEY") # Code Accesses the API Key
+client = genai.Client(api_key=api_key) # Application connects with the Model remotely
+
+# Hypnotizing AI for safety 👁️👄👁️ -> 😵‍💫
 system_prompt = """
 You are a helpful AI coding agent.
 
@@ -42,9 +45,10 @@ available_functions_dict = {
     "run_python_file" : run_python_file
 }
 
+# For the Switch case, to simplify code understanding & avoiding if-elif-else ladders
 available_functions_enum = Enum("available_functions_enum", ["get_files_info", "get_file_content", "write_file", "run_python_file"])
 
-global arguments
+global arguments # Because we are using in isolated functions too
 arguments = sys.argv
 if len(arguments) < 2:
     print("Prompt is empty!")
@@ -52,6 +56,8 @@ if len(arguments) < 2:
 
 
 def call_function(function_call_part, working_directory, verbose=False):
+    # This function is for calling the functions that allows our AI model to make changes to
+    # the user project, in this case the Provided Example: "calculator/" App 
     try:
         if verbose:
             print(f"Calling function: {function_call_part.name}({function_call_part.args})")
@@ -115,7 +121,6 @@ user_prompt = arguments[1]
 messages = [types.Content(role="user", parts=[types.Part(text=user_prompt)]), ]
 for message in messages:
     print(f"message:\n{messages}\n")
-print("DEBUG: About to start main loop")
 for i in range(20):
     response = client.models.generate_content(
         model='gemini-2.0-flash-001',
@@ -134,14 +139,20 @@ for i in range(20):
         print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
     for candidate in response.candidates:
         messages.append(candidate.content)
-    # print(f"\nresponse.function_calls:\n{response.function_calls}")
     function_call_responses = []
+    # 'function_call_responses' can be empty because the data from the previous run will be 
+    # present in the Neural Network of AI remotely. Its similar to 'messages' & will pbe part 
+    # of it after packaging, but messages has a default data added. While 'messages' is the
+    # user input to the model, function_call_responses consists the output acquired by executing
+    # the provided functions, in the 'functions/' directory
     if response.function_calls:
         for function_call_part in response.function_calls:
             print(f"Calling function: {function_call_part.name}({function_call_part.args})")
             arg_dict = {
                 "function_call_part" : function_call_part,
-                "working_directory" : "calculator",
+                # Strictly limits the AI's access to the sub-directory, the real project you want to work with!
+                # If not for this, the AI-Model will gain unrestricted access your device Compromising Personal Information. 
+                "working_directory" : "calculator", # DO NOT CHANGE!!
                 "verbose" : verbose,
             }
             # print("\n")
@@ -155,7 +166,7 @@ for i in range(20):
         packaged_function_call_result = types.Content(
             role="user",
             parts=function_call_responses
-        )
+        ) # This sorts the data for the AI-Model's best understanding
         messages.append(packaged_function_call_result)
     else:
         if response.text:

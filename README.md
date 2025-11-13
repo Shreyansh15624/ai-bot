@@ -16,7 +16,7 @@ From the project structure, it looks like this agent includes:
 
 * **Language:** Python
 * **Package Management:** uv
-* **Testing:** pytest
+* **Testing:** Pre-written tests
 
 ## 🚀 Getting Started
 

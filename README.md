@@ -31,7 +31,7 @@ Before you begin, make sure you have the following installed:
     ```sh
     pip install uv
     ```
-* **API Keys:** You will likely need an API key from an AI provider (like OpenAI, Anthropic, or Google).
+* **API Keys:** (CURRENTLY LIMITED TO GOOGLE) You will likely need an API key from an AI provider (like OpenAI, Anthropic, or Google).
     * `[...List the API keys needed, e.g., GOOGLE_GENAI_API_KEY...]`
 
 ### Installation

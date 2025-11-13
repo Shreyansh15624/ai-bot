@@ -14,7 +14,7 @@ load_dotenv()
 api_key = os.environ.get("GEMINI_API_KEY") # Code Accesses the API Key
 client = genai.Client(api_key=api_key) # Application connects with the Model remotely
 
-# Hypnotizing AI for safety 👁️👄👁️ -> 😵‍💫
+# Hypnotizing AI for safety 👁️👄👁️ -> 😵‍💫 -> 🫡
 system_prompt = """
 You are a helpful AI coding agent.
 

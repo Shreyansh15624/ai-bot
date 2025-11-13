@@ -91,6 +91,6 @@ Once installed and configured, you can run the bot from the command line.
 # Example of how to run your bot
 python main.py "[...Your prompt for the bot...]"
 
-# Example for getting more details ragarding tokenization
+# Example for getting more details regarding tokenization
 python main.py "[...Your prompt for the bot...]" --verbose
 ```

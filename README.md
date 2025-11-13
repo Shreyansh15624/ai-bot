@@ -9,8 +9,8 @@ This repository contains a Python project for an AI agent, built by following th
 From the project structure, it looks like this agent includes:
 
 * **Extensible Functions:** The ability to add custom tools and functions (located in the `/functions` directory).
-* **Calculator Tool:** A built-in calculator for handling mathematical queries (located in the `/calculator` directory).
-* **Core Agent Logic:** A central `main.py` that likely orchestrates the agent's behavior.
+* **Calculator Tool:** A built-in example calculator for handling mathematical queries (located in the `/calculator` directory).
+* **Core Agent Logic:** A central `main.py` that orchestrates the agent's behavior.
 
 ## 🛠️ Tech Stack
 

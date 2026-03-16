@@ -123,7 +123,7 @@ for message in messages:
     print(f"message:\n{messages}\n")
 for i in range(20):
     response = client.models.generate_content(
-        model='gemini-2.0-flash-001',
+        model='gemini-2.5-flash',
         contents=messages,
         config=types.GenerateContentConfig(
             tools=[available_functions],

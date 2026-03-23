@@ -13,7 +13,7 @@ def get_files_info(working_directory, directory="."):
     res = ""
     for data in directories:
         fixed_data = os.path.join(joint_directory, data)
-        if os.path.isdir(fixed_data) == False:
+        if os.path.isdir(fixed_data) is False:
             res += f'\n{data}: file_size={os.path.getsize(fixed_data)} bytes, is_dir=False'
         else:
             res += f'\n{data}: file_size={None} bytes, is_dir=True'

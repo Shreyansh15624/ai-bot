@@ -55,14 +55,11 @@ if len(arguments) < 2:
     sys.exit(1)
 
 
-def call_function(function_call_part, working_directory, verbose=False):
+def call_function(function_call_part, working_directory):
     # This function is for calling the functions that allows our AI model to make changes to
     # the user project, in this case the Provided Example: "calculator/" App 
     try:
-        if verbose:
-            print(f"Calling function: {function_call_part.name}({function_call_part.args})")
-        else:
-            print(f" - Calling function: {function_call_part.name}")
+        print(f"Calling function: {function_call_part.name}({function_call_part.args})")
         match function_call_part.name:
             case available_functions_enum.write_file.name:
                 arg_dict_2 = {
@@ -115,7 +112,7 @@ def call_function(function_call_part, working_directory, verbose=False):
         return f'Error: Executing Function: {e}'
 
 
-user_prompt = arguments[1]
+user_prompt = arguments[1] if len(arguments) > 2 else "Prompt is empty!"
 
 
 messages = [types.Content(role="user", parts=[types.Part(text=user_prompt)]), ]
@@ -130,13 +127,11 @@ for i in range(20):
             system_instruction=system_prompt
         ),
     )
-    verbose = False
-    if '--verbose' in arguments:
-        verbose = True
-        print("------------------------------------------------------------------")
-        print(f"User prompt: {user_prompt}")
-        print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
-        print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+
+    print("------------------------------------------------------------------")
+    print(f"User prompt: {user_prompt}")
+    print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
+    print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
     for candidate in response.candidates:
         messages.append(candidate.content)
     function_call_responses = []
@@ -153,7 +148,6 @@ for i in range(20):
                 # Strictly limits the AI's access to the sub-directory, the real project you want to work with!
                 # If not for this, the AI-Model will gain unrestricted access your device Compromising Personal Information. 
                 "working_directory" : "calculator", # DO NOT CHANGE!!
-                "verbose" : verbose,
             }
             # print("\n")
             function_call_result = call_function(**arg_dict)

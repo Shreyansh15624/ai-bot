@@ -1,43 +1,15 @@
-# 🤖 AI CLI Agent: Extensible File-System & Execution Framework
 
-A lightweight, terminal-native AI agent engineered to interface seamlessly with Google's GenAI models. Designed for developers and system administrators, this tool bypasses standard chat interfaces to provide an AI with autonomous filesystem access, dynamic script execution, and a modular function-calling architecture directly from the command line.
+# 🤖 AI CLI Agent: Autonomous Agentic Code Editor
 
-## 🏗️ System Architecture & Capabilities
+## Description
 
-This agent is built on a modular, tool-use architecture, prioritizing speed, deterministic dependency management, and secure state handling.
+A lightweight, terminal-native AI agent engineered to interface seamlessly with Google's Gemini models. Built in Python, this tool functions as a toy agentic code editor capable of reading, updating, and executing code autonomously. By utilizing a modular function-calling architecture and a dynamic ReAct (Reasoning and Acting) feedback loop, the agent can navigate local file systems, evaluate its own execution outputs (stdout/stderr), and iterate until a task is successfully resolved. 
 
-### 1. Autonomous Filesystem & Execution Tools
+## Motivation
 
-The core LLM is augmented with a suite of native tools injected via the `/functions` directory, allowing it to autonomously:
+Standard chat interfaces often lack the context and permissions necessary for real software development tasks. The motivation behind this project is to build an LLM-powered command-line program from scratch that bypasses these limitations. By providing the AI with direct filesystem access, dynamic script execution, and a self-correcting feedback loop, this agent serves as a transparent, high-speed alternative for local codebase manipulation and bug fixing. It prioritizes speed, deterministic dependency management, and secure state handling.
 
-* **`get_files_info.py` / `get_file_content.py`:** Read and map directory structures and ingest file contents into its context window.
-* **`write_file.py`:** Generate and write code, configurations, or logs directly to the local filesystem.
-* **`run_python_file.py`:** Execute Python scripts dynamically based on generated outputs or user prompts.
-
-### 2. Deterministic Tooling
-
-* **Modern Package Management:** Built on Python 3.14+ utilizing `uv` (`pyproject.toml` / `uv.lock`) for lightning-fast, reproducible dependency resolution across environments.
-
-## 📂 Repository Structure
-
-The system cleanly separates the core orchestrator from the modular toolsets and test environments.
-
-```text
-├── functions/              # Dynamically injected agent capabilities
-│   ├── get_file_content.py # Reads specific files
-│   ├── get_files_info.py   # Scans directory trees
-│   ├── write_file.py       # Writes to the filesystem
-│   ├── run_python_file.py  # Executes scripts
-│   └── config.py           # Tool configuration and state
-├── calculator/             # Isolated arithmetic & execution sandbox
-├── main.py                 # Core AI orchestrator and CLI entry point
-├── tests.py                # Unit and integration test suite
-├── pyproject.toml          # Project metadata and dependencies
-└── uv.lock                 # Deterministic dependency lockfile
-
-```
-
-## 🚀 Quick Start & Execution
+## Quick Start
 
 ### Prerequisites
 
@@ -49,47 +21,42 @@ The system cleanly separates the core orchestrator from the modular toolsets and
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/Shreyansh15624/ai-bot.git
+git clone https://github.com/Shreyansh15624/ai-bot
 cd ai-bot
-
 ```
-
 
 2. **Initialize the environment:**
-Because this project uses `uv.lock`, dependency installation is fully deterministic.
+This project utilizes `uv` (`pyproject.toml` / `uv.lock`) for lightning-fast, fully deterministic dependency resolution.
 ```bash
 uv sync
-
 ```
-
 
 3. **Configure Environment Variables:**
 Add your API key to your environment or a `.env` file:
 ```bash
 export GOOGLE_GENAI_API_KEY="your_api_key_here"
-
 ```
 
+## Usage
 
+Execute natural language commands directly from your terminal. The agent will autonomously decide which tools from the `functions/` directory to use to accomplish your prompt. 
 
-## 💻 Usage Examples
+Target specific workspaces by pointing the agent to the `projects/` directory, which safely isolates target data from the core orchestrator.
 
-Execute natural language commands directly from your terminal.
-
-**Filesystem Mapping:**
-
+**Analyze an Isolated Project:**
 ```bash
-uv run main.py "Scan the current directory and summarize the Python files."
-
+uv run main.py "Scan the projects/ directory and find the appropriate calculator project directory, and read the python files, then summarize how the compound interest is calculated."
 ```
 
-**Code Generation & Execution:**
-
+**Autonomous Bug Fixing & Execution Loop:**
 ```bash
-uv run main.py "Write a python script that calculates the Fibonacci sequence up to 100, save it, and run it."
-
+uv run main.py "Review projects/calculator/main.py, find any logical errors, fix them, and run the script to verify the output is correct."
 ```
+*Note: The agent will capture the terminal output. If an error occurs during execution, it will read the traceback, self-correct the code, and retry until successful.*
 
-## 🛠️ Extending the Agent
+## Contributing
 
-To add custom capabilities (e.g., Docker container management, API fetching), define a new tool in the `/functions` directory. The core `main.py` orchestrator will automatically parse the function signature and expose it to the LLM's tool-use logic.
+The system cleanly separates the core orchestrator (`main.py`) from the modular toolsets (`functions/`) and test environments (`projects/`). 
+
+* **To add a new tool (e.g., web scraping, Git commands):** Define a new Python script in the `functions/` directory. The orchestrator will automatically parse the function signature and expose it to the LLM's context window.
+* **To add a new test workspace:** Create a new folder inside the `projects/` directory to act as an isolated sandbox for the agent to manipulate.

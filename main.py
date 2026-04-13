@@ -172,11 +172,22 @@ for i in range(20):
             )
             function_call_responses.append(call_responses)
 
-        packaged_function_call_result = types.Content(
-            role="user",
-            parts=function_call_responses,
-        )
-        messages.append(packaged_function_call_result)
+        # Standardized appending the tool results so both engines understand
+        # the progressive direction of the ReAct loop
+        if USE_LOCAL_MODEL:
+            # For Ollama, the entire raw string is appended
+            messages.append(
+                types.Content(role="user", parts=[types.Part(text=str(function_call_result))])
+            )
+        
+        else:
+            # For Gemini, the native object structure is used
+            packaged_function_call_result = types.Content(
+                role="user",
+                parts=function_call_responses,
+            )
+            messages.append(packaged_function_call_result)
+    
     else:
         if response.text:
             print(f"\nModel's response.text: {response.text}")

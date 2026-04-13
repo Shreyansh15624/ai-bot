@@ -2,15 +2,17 @@ import os
 import sys
 import subprocess
 from google.genai import types
+from functions.config import is_safe_path
 
 # Descrption for the function listed in the schema section at the bottom, check out that!
 # And, comments left for easy debugging purposes
-def run_python_file(working_directory, file_path, args=[]):
+def run_python_file(working_directory, file_path, args=[]):    
+    if not is_safe_path(working_directory, file_path):
+        return f'Error: Security Violation! Cannot Access {file_path} as it resides outside the permitted sandbox!'
+
     joint_directory = os.path.join(working_directory, file_path)
     # print(f"joint_directory: {joint_directory}; type: {type(joint_directory)}")
-    abs_path = os.path.abspath(joint_directory)
-    if working_directory not in abs_path:
-        return f'Error: Cannot execute "{file_path}" as it is outside the permitted working directory'
+    
     if not os.path.exists(joint_directory):
         return f'Error: File "{file_path}" not found.'
     if not file_path.endswith(".py"):

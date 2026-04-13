@@ -63,6 +63,9 @@ def call_function(function_call_part, working_directory):
     # the user project, in this case the Provided Example: "calculator/" App 
     try:
         print(f"Calling function: {function_call_part.name}({function_call_part.args})")
+        
+        function_result = None # Declared to prevent the `UnboundLocalError`
+        
         match function_call_part.name:
             case available_functions_enum.write_file.name:
                 arg_dict_2 = {
@@ -89,6 +92,8 @@ def call_function(function_call_part, working_directory):
                     "file_path": function_call_part.args["file_path"]
                 }
                 function_result = available_functions_dict[function_call_part.name](**arg_dict_2)
+            case _:
+                function_result = f"Error: Tool '{function_call_part.name} does not exist. You must strictly use the provided tools: get_files_info, get_file_content, write_file, run_python_file."
         if not function_call_part.name:
             function_call_result = types.Content(
                 role="tool",

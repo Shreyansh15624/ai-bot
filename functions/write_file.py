@@ -1,13 +1,14 @@
 import os
 from google.genai import types
+from functions.config import is_safe_path
 
 # Descrption for the function listed in the schema section at the bottom, check out that!
 # And, comments left for easy debugging purposes
 def write_file(working_directory, file_path, content):
+    if not is_safe_path(working_directory, file_path):
+        return f'Error: Security Violation! Cannot Access {file_path} as it resides outside the permitted sandbox!'
     joint_directory = os.path.join(working_directory, file_path)
     abs_path = os.path.abspath(joint_directory)
-    if working_directory not in abs_path:
-        return f'Error: Cannot read / write to "{file_path}" as it is outside the permitted working directory'
     try:
         os.path.exists(file_path)
     except FileExistsError:

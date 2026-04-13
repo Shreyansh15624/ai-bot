@@ -1,16 +1,20 @@
 import os
 from google.genai import types
+from functions.config import is_safe_path
 
 # Descrption for the function listed in the schema section at the bottom, check out that!
 # And, comments left for easy debugging purposes
 def get_files_info(working_directory, directory="."):
+    if not is_safe_path(working_directory, directory):
+        return f'Error: Security Violation! Cannot Access {directory} as it resides outside the permitted sandbox!'
+    
     joint_directory = os.path.join(working_directory, directory)
-    if working_directory not in os.path.abspath(joint_directory):
-        return f'Error: Cannot list "{directory}" as it is outside the permitted working directory'
+    
     if not os.path.isdir(joint_directory):
         return f'Error: "{directory}" is not a directory'
     directories = os.listdir(joint_directory)
     res = ""
+    
     for data in directories:
         fixed_data = os.path.join(joint_directory, data)
         if os.path.isdir(fixed_data) is False:

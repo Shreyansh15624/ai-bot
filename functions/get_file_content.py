@@ -1,5 +1,5 @@
 import os
-from functions.config import MAX_CHARS # For limiting the tokens fed to AI, cost effective also!
+from functions.config import MAX_CHARS, is_safe_path
 from google.genai import types
 
 # Descrption for the function listed in the schema section at the bottom, check out that!
@@ -13,11 +13,13 @@ def get_file_content(working_directory, file_path):
     # directories = os.listdir(working_directory)
     # for data in directories:
         # print(data)
-    if working_directory not in abs_path:
-        return f'Error: Cannot read "{file_path}" as it is outside the permitted working directory'
+    if not is_safe_path(working_directory, file_path):
+        return f'Error: Security Violation! Cannot Access {file_path} as it resides outside the permitted sandbox!'
+    
     if not os.path.isfile(joint_directory):
         # print(f"joint_directory: {joint_directory}")
         return f'Error: File not found or is not a regular file: "{file_path}"'
+    
     with open(abs_path, 'r') as f:
         file_content_string = f.read(MAX_CHARS+1)
         if len(file_content_string) > MAX_CHARS:

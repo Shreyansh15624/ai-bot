@@ -9,17 +9,20 @@ from functions.write_file import write_file, schema_write_file
 from functions.run_python_file import run_python_file, schema_run_python_file
 from enum import Enum
 
+# Importing the new Engines
+from engines.gemini_engine import run_gemini
+from engines.ollama_engine import run_local_model
 
 load_dotenv()
-api_key = os.environ.get("GEMINI_API_KEY") # Code Accesses the API Key
-client = genai.Client(api_key=api_key) # Application connects with the Model remotely
+
+# The Master Toggle
+USE_LOCAL_MODEL = True
 
 # Hypnotizing AI for safety 👁️👄👁️ -> 😵‍💫 -> 🫡
 system_prompt = """
 You are a helpful AI coding agent.
 
 When a user asks a question or makes a request, make a function call plan. You can perform the following operations:
-
 - List files and directories
 - Read file contents
 - Execute Python files with optional arguments
@@ -113,58 +116,70 @@ def call_function(function_call_part, working_directory):
 
 
 user_prompt = arguments[1] if len(arguments) > 2 else "Prompt is empty!"
-
-
 messages = [types.Content(role="user", parts=[types.Part(text=user_prompt)]), ]
-for message in messages:
-    print(f"message:\n{messages}\n")
-for i in range(20):
-    response = client.models.generate_content(
-        model='gemini-2.5-flash',
-        contents=messages,
-        config=types.GenerateContentConfig(
-            tools=[available_functions],
-            system_instruction=system_prompt
-        ),
-    )
 
-    print("------------------------------------------------------------------")
-    print(f"User prompt: {user_prompt}")
-    print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
-    print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
-    for candidate in response.candidates:
-        messages.append(candidate.content)
+for i in range(20):
+    # ---- NEW ROUTER BLOCK ----
+    if USE_LOCAL_MODEL:
+        print("🤖 Routing to Local Engine (Gemma 4 via Ollama)...")
+        raw_response = run_local_model(messages, available_functions.function_declarations, system_prompt)
+
+        class MockResponse: pass
+        class MockCall: pass
+        response = MockResponse()
+        response.text = raw_response['message'].get('content', '')
+        response.function_calls = []
+
+        if 'tool_calls' in raw_response['message']:
+            for tc in raw_response['message']['tool_calls']:
+                mock_call = MockCall()
+                mock_call.name = tc['function']['name']
+                mock_call.args = tc['function']['arguments']
+                response.function_calls.append(mock_call)
+    
+    else:
+        print("☁️ Routing to Remote Engine (Gemini API)...")
+        response = run_gemini(messages, available_functions, system_prompt)
+    # ------------------------------------------
+
+    print("------------------------------------------------------------------------")
+    print(f"User Prompt: {user_prompt}")
+
+    # Safe token printing (Local Models won't have usage_metadata formatted the same way)
+    if not USE_LOCAL_MODEL:
+        try:
+            print(f"Prompt Tokens: {response.usage_metadata.prompt_token_count}")
+            print(f"Response Tokens: {response.usage_metadata.candidates_token_count}")
+            for candidate in response.candidates:
+                messages.append(candidate.count)
+        except Exception:
+            pass
+
     function_call_responses = []
-    # 'function_call_responses' can be empty because the data from the previous run will be 
-    # present in the Neural Network of AI remotely. Its similar to 'messages' & will pbe part 
-    # of it after packaging, but messages has a default data added. While 'messages' is the
-    # user input to the model, function_call_responses consists the output acquired by executing
-    # the provided functions, in the 'functions/' directory
+
     if response.function_calls:
         for function_call_part in response.function_calls:
             print(f"Calling function: {function_call_part.name}({function_call_part.args})")
             arg_dict = {
-                "function_call_part" : function_call_part,
-                # Strictly limits the AI's access to the sub-directory, the real project you want to work with!
-                # If not for this, the AI-Model will gain unrestricted access your device Compromising Personal Information. 
-                "working_directory" : "calculator", # DO NOT CHANGE!!
+                "function_call_part": function_call_part,
+                "working_directory": "projects/calculator", # DO NOT CHANGE!!!
             }
-            # print("\n")
             function_call_result = call_function(**arg_dict)
             print(function_call_result)
             call_responses = types.Part.from_function_response(
                 name=function_call_part.name,
-                response={"result": function_call_result}
+                response={"result": function_call_result},
             )
             function_call_responses.append(call_responses)
+
         packaged_function_call_result = types.Content(
             role="user",
-            parts=function_call_responses
-        ) # This sorts the data for the AI-Model's best understanding
+            parts=function_call_responses,
+        )
         messages.append(packaged_function_call_result)
     else:
         if response.text:
-            print(f"\nModel's response.text:\n{response.text}")
+            print(f"\nModel's response.text: {response.text}")
             break
 
 sys.exit(0)

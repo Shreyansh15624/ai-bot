@@ -7,6 +7,7 @@ from functions.get_files_info import get_files_info, schema_get_files_info
 from functions.get_file_content import get_file_content, schema_get_file_content
 from functions.write_file import write_file, schema_write_file
 from functions.run_python_file import run_python_file, schema_run_python_file
+from functions.search_codebase import search_codebase, schema_search_codebase
 from enum import Enum
 
 # Importing the new Engines
@@ -27,6 +28,7 @@ When a user asks a question or makes a request, make a function call plan. You c
 - Read file contents
 - Execute Python files with optional arguments
 - Write or overwrite files
+- Search a keyword within all the files present
 
 All paths you provide should be relative to the working directory. You do not need to specify the working directory in your function calls as it is automatically injected for security reasons.
 """
@@ -37,6 +39,7 @@ available_functions = types.Tool(
         schema_get_file_content,
         schema_write_file,
         schema_run_python_file,
+        schema_search_codebase,
     ]
 )
 
@@ -45,11 +48,12 @@ available_functions_dict = {
     "get_files_info" : get_files_info,
     "get_file_content" : get_file_content,
     "write_file" : write_file,
-    "run_python_file" : run_python_file
+    "run_python_file" : run_python_file,
+    "search_codebase": search_codebase,
 }
 
 # For the Switch case, to simplify code understanding & avoiding if-elif-else ladders
-available_functions_enum = Enum("available_functions_enum", ["get_files_info", "get_file_content", "write_file", "run_python_file"])
+available_functions_enum = Enum("available_functions_enum", ["get_files_info", "get_file_content", "write_file", "run_python_file", "search_codebase"])
 
 global arguments # Because we are using in isolated functions too
 arguments = sys.argv
@@ -92,8 +96,14 @@ def call_function(function_call_part, working_directory):
                     "file_path": function_call_part.args["file_path"]
                 }
                 function_result = available_functions_dict[function_call_part.name](**arg_dict_2)
+            case available_functions_enum.search_codebase.name:
+                arg_dict_2 = {
+                    "working_directory": working_directory,
+                    "keyword": function_call_part.args.get("keyword", str(function_call_part.args))
+                }
+                function_result = available_functions_dict[function_call_part.name](**arg_dict_2)
             case _:
-                function_result = f"Error: Tool '{function_call_part.name} does not exist. You must strictly use the provided tools: get_files_info, get_file_content, write_file, run_python_file."
+                function_result = f"Error: Tool '{function_call_part.name} does not exist. You must strictly use the provided tools: get_files_info, get_file_content, write_file, run_python_file, search_codebase."
         if not function_call_part.name:
             function_call_result = types.Content(
                 role="tool",
@@ -120,7 +130,7 @@ def call_function(function_call_part, working_directory):
         return f'Error: Executing Function: {e}'
 
 
-user_prompt = arguments[1] if len(arguments) > 2 else "Prompt is empty!"
+user_prompt = arguments[1] if len(arguments) >= 2 else "Prompt is empty!"
 messages = [types.Content(role="user", parts=[types.Part(text=user_prompt)]), ]
 
 for i in range(20):
@@ -182,7 +192,7 @@ for i in range(20):
         if USE_LOCAL_MODEL:
             # For Ollama, the entire raw string is appended
             messages.append(
-                types.Content(role="user", parts=[types.Part(text=str(function_call_result))])
+                types.Content(role="user", parts=[types.Part(text=f"Tool Result: {str(function_call_result)}")])
             )
         
         else:

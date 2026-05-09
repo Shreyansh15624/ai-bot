@@ -1,62 +1,98 @@
+# AegisAgent: The Sandboxed Autonomous AI Coder
 
-# 🤖 AI CLI Agent: Autonomous Agentic Code Editor
+![Python Version](https://img.shields.io/badge/python-3.14%2B-blue)
+![Architecture](https://img.shields.io/badge/Architecture-ReAct_Loop-8A2BE2)
+![Engines](https://img.shields.io/badge/Engines-Gemini_|_Ollama-FF8C00)
+![Security](https://img.shields.io/badge/Security-Strict_Sandboxing-brightgreen)
+![Package Manager](https://img.shields.io/badge/Package_Manager-uv-purple)
 
 ## Description
 
-A lightweight, terminal-native AI agent engineered to interface seamlessly with Google's Gemini models. Built in Python, this tool functions as a toy agentic code editor capable of reading, updating, and executing code autonomously. By utilizing a modular function-calling architecture and a dynamic ReAct (Reasoning and Acting) feedback loop, the agent can navigate local file systems, evaluate its own execution outputs (stdout/stderr), and iterate until a task is successfully resolved. 
+AegisAgent (formerly ai-bot) is a highly modular, terminal-native AI agent engineered to manipulate, execute, and debug code autonomously. Built with a dynamic **ReAct (Reasoning and Acting)** feedback loop, the agent doesn't just write code—it actively tests it, reads the standard output/error traces, and self-corrects until the objective is achieved. 
+
+The architecture features a robust dual-engine system, allowing seamless switching between cloud-based reasoning (Google Gemini) and local, privacy-first execution (Ollama). To ensure host system integrity, the agent's file system access is strictly constrained by a cryptographic path-resolution sandbox, neutralizing directory traversal vulnerabilities while it autonomously manipulates the codebase.
+
+**Key Engineering Features:**
+* **Dual-Engine Modularity:** Intercepts and maps Google GenAI function schemas to local Ollama JSON specifications dynamically via a custom `schema_mapper`.
+* **Context Propagation:** Sustains long-running ReAct loops by properly packaging and appending tool execution results (stdout/stderr) back into the LLM's context window.
+* **Strict OS Sandboxing:** Employs absolute path resolution and common-path validation (`is_safe_path`) to trap the AI within designated workspace directories.
+* **Safe Codebase Search:** Implements sub-process shell execution with strict timeout guillotines (`grep -r`) to allow the LLM to traverse large codebases without hanging the main thread.
 
 ## Motivation
 
-Standard chat interfaces often lack the context and permissions necessary for real software development tasks. The motivation behind this project is to build an LLM-powered command-line program from scratch that bypasses these limitations. By providing the AI with direct filesystem access, dynamic script execution, and a self-correcting feedback loop, this agent serves as a transparent, high-speed alternative for local codebase manipulation and bug fixing. It prioritizes speed, deterministic dependency management, and secure state handling.
+Standard web-based LLM interfaces require tedious copy-pasting and lack crucial filesystem context. Developers waste time acting as the "middleman" between the AI and the terminal. 
+
+I built this project to bridge that gap and bring the AI directly to the codebase. However, giving an LLM autonomous read/write/execute permissions is inherently dangerous. The core motivation was to engineer an AI that is both highly capable of manipulating real projects and mathematically constrained from touching anything outside its assigned sandbox. It is designed to be a transparent, rapid, and deterministic alternative to bloated commercial AI IDEs.
 
 ## Quick Start
 
-### Prerequisites
+The project relies on `uv` for deterministic, lightning-fast dependency resolution.
 
+**Prerequisites:**
 * Python 3.14+
-* `uv` package manager (`pip install uv`)
-* Google Gemini API Key
+* [uv package manager](https://github.com/astral-sh/uv)
+* Google Gemini API Key (for Cloud execution)
+* Ollama installed locally (for Local execution)
 
-### Installation
+**Installation:**
+1. Clone the repository and navigate into the project:
+   ```bash
+   git clone https://github.com/yourusername/ai-bot
+   cd ai-bot
 
-1. **Clone the repository:**
-```bash
-git clone https://github.com/Shreyansh15624/ai-bot
-cd ai-bot
 ```
 
-2. **Initialize the environment:**
-This project utilizes `uv` (`pyproject.toml` / `uv.lock`) for lightning-fast, fully deterministic dependency resolution.
+2. Sync the environment and install dependencies natively via `uv`:
 ```bash
 uv sync
+
 ```
 
-3. **Configure Environment Variables:**
-Add your API key to your environment or a `.env` file:
-```bash
-export GOOGLE_GENAI_API_KEY="your_api_key_here"
+
+3. Create a `.env` file in the root directory and add your API key:
+```env
+GEMINI_API_KEY="your_api_key_here"
+
 ```
+
+
 
 ## Usage
 
-Execute natural language commands directly from your terminal. The agent will autonomously decide which tools from the `functions/` directory to use to accomplish your prompt. 
+The orchestrator (`main.py`) handles the user prompt, routing it to either the cloud or local engine based on the master toggle.
 
-Target specific workspaces by pointing the agent to the `projects/` directory, which safely isolates target data from the core orchestrator.
+**Selecting the Engine:**
+Inside `main.py`, modify the global toggle to choose your execution environment:
 
-**Analyze an Isolated Project:**
-```bash
-uv run main.py "Scan the projects/ directory and find the appropriate calculator project directory, and read the python files, then summarize how the compound interest is calculated."
+```python
+# Set to True for Ollama (Local), False for Gemini (Cloud)
+USE_LOCAL_MODEL = True 
+
 ```
 
-**Autonomous Bug Fixing & Execution Loop:**
+**Executing an Autonomous Task:**
+Simply run the orchestrator and pass your prompt. The agent is strictly locked to the `projects/` directory sandbox.
+
 ```bash
-uv run main.py "Review projects/calculator/main.py, find any logical errors, fix them, and run the script to verify the output is correct."
+uv run main.py "Review the calculator project, find the bug in the division logic, write the fix, and run the tests.py file to verify."
+
 ```
-*Note: The agent will capture the terminal output. If an error occurs during execution, it will read the traceback, self-correct the code, and retry until successful.*
+
+**How it works under the hood:**
+
+1. The agent reads the prompt and determines it needs to use `get_files_info`.
+2. It lists the directory, then calls `get_file_content` on `calculator.py`.
+3. It identifies the logic error and calls `write_file` to inject the corrected code.
+4. It calls `run_python_file` on `tests.py`. If tests fail, it reads the traceback and loops back to step 3. If they pass, it exits gracefully.
 
 ## Contributing
 
-The system cleanly separates the core orchestrator (`main.py`) from the modular toolsets (`functions/`) and test environments (`projects/`). 
+The repository is structured to prioritize modularity, cleanly separating engines, tools, and sandboxed projects.
 
-* **To add a new tool (e.g., web scraping, Git commands):** Define a new Python script in the `functions/` directory. The orchestrator will automatically parse the function signature and expose it to the LLM's context window.
-* **To add a new test workspace:** Create a new folder inside the `projects/` directory to act as an isolated sandbox for the agent to manipulate.
+**Adding New Tools:**
+
+1. Create a new python script inside the `functions/` directory (e.g., `git_commit.py`).
+2. Define your python function and its associated GenAI `FunctionDeclaration` schema.
+3. Import the schema into `main.py` and append it to the `available_functions` list. The `schema_mapper` will automatically ensure it works for both Gemini and Ollama!
+
+If you build a new tool or optimize the ReAct context propagation, feel free to open a Pull Request. Please ensure your tools strictly utilize the `is_safe_path` validator from `config.py` to maintain sandbox integrity.

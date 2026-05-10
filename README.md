@@ -39,21 +39,19 @@ The project relies on `uv` for deterministic, lightning-fast dependency resoluti
    ```bash
    git clone https://github.com/yourusername/ai-bot
    cd ai-bot
-
-```
+   ```
 
 2. Sync the environment and install dependencies natively via `uv`:
-```bash
-uv sync
-
-```
+   ```bash
+   uv sync
+   ```
 
 
 3. Create a `.env` file in the root directory and add your API key:
-```env
-GEMINI_API_KEY="your_api_key_here"
+   ```env
+   GEMINI_API_KEY="your_api_key_here"
 
-```
+   ```
 
 
 

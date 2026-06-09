@@ -10,5 +10,24 @@ dist/
 wheels/
 *.egg-info
 
-# Virtual environments
+# Virtual environments & Package Managers
 .venv
+.uv/
+uv.lock
+
+# IDE & Editor Settings
+.vscode/
+.idea/
+
+# Database & State (CRITICAL FOR PHASE 2)
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs & Debugging
+*.log
+logs/
+
+# The Agent Sandbox Workspace (CRITICAL)
+projects/
+!projects/.gitkeep

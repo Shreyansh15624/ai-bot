@@ -9,4 +9,5 @@ dependencies = [
     "google-genai==1.12.1",
     "ollama>=0.6.1",
     "python-dotenv==1.1.0",
+    "textual>=8.2.7",
 ]

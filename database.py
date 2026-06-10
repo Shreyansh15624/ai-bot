@@ -1,6 +1,4 @@
 import sqlite3
-import sqlite3
-import os
 from datetime import datetime
 
 DB_PATH = "aegis_memory.db"
@@ -65,7 +63,7 @@ def get_all_sessions():
     """Retrieves all historical chat sessions to populate the sidebar"""
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM session ORDER BY created_at DESC;")
+        cursor.execute("SELECT * FROM sessions ORDER BY created_at DESC;")
         return cursor.fetchall()
     
 def get_session_messages(session_id: str):

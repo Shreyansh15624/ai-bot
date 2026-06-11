@@ -1,9 +1,47 @@
 import uuid
+import time
+from datetime import datetime
 from textual.app import App, ComposeResult
 from textual.containers import Container, Vertical
 from textual.widgets import Header, Footer, Input, RichLog, ListItem, ListView, Label
+from textual import work
 
+from google.genai import types
+
+# Importing local engines and the mapper utilities
+from engines.ollama_engine import run_local_model
+
+# Import core sandbox tools
+from functions.get_files_info import get_files_info, schema_get_files_info
+from functions.get_file_content import get_file_content, schema_get_file_content
+from functions.write_file import write_file, schema_write_file
+from functions.run_python_file import run_python_file, schema_run_python_file
+from functions.search_codebase import search_codebase, schema_search_codebase
+
+# Importing the database connection drivers
 from database import init_db, create_session, save_message, get_all_sessions, get_session_messages
+
+# Packaging the definitions matching the original main.py
+available_function_schemas = [
+    schema_get_files_info,
+    schema_get_file_content,
+    schema_write_file,
+    schema_run_python_file,
+    schema_search_codebase,
+]
+
+SYSTEM_PROMPT = """
+You are a helpful AI coding agent.
+
+When a user asks a question or makes a request, make a function call plan. You can perform the following operations:
+- List files and directories
+- Read file contents
+- Execute Python files with optional arguments
+- Write or Overwrite files
+- Search a keyword within all the files present
+
+All paths you provide should be relative to the working directory. You do not need to specify the working directory in your function calls as it is automatically injected for security reasons.
+"""
 
 class SessionListItem(ListItem):
     """Defining a custom ListItem that cleanly stores all of the associated database session ID"""
@@ -62,7 +100,7 @@ class AegisTUI(App):
         with Container(id="app-grid"):
             # Live sidebar columns for different chat sessions
             with Vertical(id="sidebar"):
-                yield Label("CHAT SESSIONS", id="sidebar-title")
+                yield Label("📂 CHAT SESSIONS", id="sidebar-title")
                 yield ListView(id="session-list")
             
             # Right Main Working Panel
@@ -97,9 +135,7 @@ class AegisTUI(App):
         # Pull real historical columns out of SQLite
         saved_sessions = get_all_sessions()
         for session in saved_sessions:
-            session_list.append(
-                SessionListItem(session_id=session["id"], title=session["title"])
-            )
+            session_list.append(SessionListItem(session_id=session["id"], title=session["title"]))
     
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         """Gracefully swaps the chat session to the one clicked within the sidebar"""
@@ -113,7 +149,6 @@ class AegisTUI(App):
         if selected_item.session_id == "NEW":
             self.current_session_id = None
             log.write("[bold green]✨ Started a clean unprimed workspace session.[/bold green]")
-            log.write("Your next prompt will generate a brand new histocial tracking session.")
             return
         
         # Swapping active session pointers to fetch historical messages
@@ -124,6 +159,8 @@ class AegisTUI(App):
         for msg in historical_messages:
             role_label = "[bold blue]👤 User:[/bold blue]" if msg["role"] == "user" else "[bold magenta]🤖 Aegis:[/bold magenta]"
             log.write(f"{role_label} {msg["content"]}")
+            if msg["role"] == "assistant" and (msg["prompt_tokens"] > 0 or msg["completion_tokens"] > 0):
+                log.write(f"[dim gray]📥 {msg['prompt_tokens']} tokens | 📤 {msg['completion_tokens']} tokens[/dim gray]\n")
     
     def on_input_submitted(self, event=Input.Submitted) -> None:
         """Captures the input string and provisions the rows inside SQLite, and fires execution traces"""
@@ -132,6 +169,7 @@ class AegisTUI(App):
             return
         
         log = self.query_one("#chat-log", RichLog)
+        input_widget = self.query_one("#user-input", Input)
 
         # Lazily initializing a new tracking instance by default
         if self.current_session_id is None:
@@ -145,14 +183,130 @@ class AegisTUI(App):
         # 1. Commit user text row securely into the local SQLite messages timeline
         save_message(self.current_session_id, role="user", content=user_text)
         log.write(f"\n[bold blue]👤 User:[/bold blue] {user_text}")
-        self.query_one("#user-input", Input).value = ""
+        
+        # 2. Locking the text box to a clean slate
+        input_widget.value = ""
 
-        # 2. Mock Agent Loop Action (will be swapped with the real one later)
-        agent_reply_mock = f"Simulated local execution tracing complete for context window tracking under session checkpoint: {self.current_session_id}."
+        # 3. Firing off the background worker thread
+        self.run_agent_loop(user_text)
+    
+    @work(thread=True)
+    def run_agent_loop(self, user_prompt: str) -> None:
+        """Asynchronous execution progressing the ReAct model decisions without UI freezes"""
+        log = self.query_one("#chat-log", RichLog)
+        working_dir = "projects/calculator"
 
-        # 3. Commit agent response row securely into the local SQLite messages timeline
-        save_message(self.current_session_id, role="assistant", content=agent_reply_mock)
-        log.write(f"[bold magenta]🤖 Aegis:[/bold magenta] {agent_reply_mock}")
+        # Hydrate message history stream from database
+        db_history = get_session_messages(self.current_session_id)
+        messages = []
+        for row in db_history:
+            messages.append(
+                types.Content(role=row['role'], parts=[types.Part(text=row["content"])])
+            )
+        
+        start_time = time.time()
+
+        # Stepping through the loop upto 20 times to map the code development
+        for iteration in range(20):
+            log.write(f"[italic gray]⚙️ Agent running loop iteration {iteration + 1}...[/italic gray]")
+
+            try:
+                # Direct lookup payload to Ollama Daemon
+                raw_response = run_local_model(messages, available_function_schemas, SYSTEM_PROMPT)
+
+                # Extracting the telemetry statistics integers natively
+                prompt_tokens = raw_response.get('prompt_eval_count', 0)
+                completion_tokens = raw_response.get('eval_count', 0)
+
+                # Standardize structures matching your main.py layout patterns
+                class MockResponse: pass
+                class MockCall: pass
+                response = MockResponse()
+                response.text = raw_response['message'].get('content', "")
+                response.function_calls = []
+
+                if 'tool_calls' in raw_response['message']:
+                    for tc in raw_response['message']['tool_calls']:
+                        mock_call = MockCall()
+                        mock_call.name = tc['function']['name']
+                        mock_call.args = tc['function']['arguments']
+                        response.function_calls.append(mock_call)
+            
+            except Exception as engine_err:
+                log.write(f"[bold red]❌ Model Engine Configuration Error: {engine_err}[/bold red]")
+                return
+            
+            # Tool Execution Check Block
+            if response.function_calls:
+                for call in response.function_calls:
+                    log.write(f"[bold yellow]🛠️ Invoking Tool Call: {call.name}({call.args})[/bold yellow]")
+
+                    try:
+                        function_result = None
+                        name = call.name
+                        args = call.args
+
+                        # Match logic mirroring main.py switch case structures
+                        if name == "write_file":
+                            function_result = write_file(
+                                working_directory=working_dir,
+                                file_path=args["file_path"],
+                                content=args["content"],
+                            )
+                        elif name == "get_file_content":
+                            function_result = get_file_content(
+                                working_directory=working_dir,
+                                file_path=args["file_path"],
+                            )
+                        elif name == "get_files_info":
+                            function_result = get_files_info(
+                                working_directory=working_dir,
+                                directory=args.get('directory', ".")
+                            )
+                        elif name == "run_python_file":
+                            function_result = run_python_file(
+                                working_directory=working_dir,
+                                file_path=args["file_path"],
+                            )
+                        elif name == "search_codebase":
+                            function_result = search_codebase(
+                                working_directory=working_dir,
+                                keyword=args.get("keyword", str(args))
+                            )
+                        else:
+                            function_result = f"Error: Tool '{name}' does not exist inside active environment scopes."
+                        
+                        log.write(f"[dim green]✅ Execution Complete: {name}[/dim green]")
+                    
+                    except Exception as tool_err:
+                        function_result = f"Error: Executing Function: {tool_err}"
+                        log.write(f"[bold red]❌ Tool execution runtime exception : {tool_err}[/bold red]")
+                    
+                    # Standardizing 'appending' for ReAct tracing loop
+                    messages.append(
+                        types.Content(role="user", parts=[types.Part(text=f"Tool Result: {str(function_result)}")])
+                    )
+            
+            else:
+                # Terminal text generated successfully
+                if response.text:
+                    elapsed_time = time.time() - start_time
+
+                    # 1. Writing the content block to the screen layout pane
+                    log.write(f"\n[bold magenta]🤖 Aegis:[/bold magenta] {response.text}")
+
+                    # 2. Rendering layout performance telemetry line layout directly below it
+                    log.write(f"[dim gray]⏱️ {elapsed_time:.1f}s | 📥 {prompt_tokens} tokens | 📤 {completion_tokens} tokens[/dim gray]")
+
+                    # 3. Committing text responses along with true statistics columns to disks records
+                    save_message(
+                        self.current_session_id,
+                        role="assistant",
+                        content=response.text,
+                        prompt_tokens=prompt_tokens,
+                        completion_tokens=completion_tokens,
+                    )
+                    break
 
 if __name__=="__main__":
     app = AegisTUI()

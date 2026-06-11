@@ -33,6 +33,8 @@ def init_db():
                 role TEXT NOT NULL,
                 content TEXT NOT NULL,
                 timestamp TEXT NOT NULL,
+                prompt_tokens INTEGER DEFAULT 0,
+                completion_tokens INTEGER DEFAULT 0,
                 FOREIGN KEY (session_id) REFERENCES sessions (id) ON DELETE CASCADE
             );
         """)
@@ -49,13 +51,15 @@ def create_session(session_id: str, title: str) -> None:
         )
         conn.commit()
     
-def save_message(session_id: str, role: str, content: str) -> None:
+def save_message(session_id: str, role: str, content: str, prompt_tokens: int = 0, completion_tokens: int = 0) -> None:
+    """Appends the individual trace messages along with its token usage telemetry"""
     with get_db_connection() as conn:
         cursor = conn.cursor()
         now = datetime.now().isoformat()
-        cursor.execute(
-            "INSERT INTO messages (session_id, role, content, timestamp) VALUES (?, ?, ?, ?);",
-            (session_id, role, content, now)
+        cursor.execute("""
+                INSERT INTO messages (session_id, role, content, timestamp, prompt_tokens, completion_tokens)
+                VALUES (?, ?, ?, ?, ?, ?);
+            """, (session_id, role, content, now, prompt_tokens, completion_tokens)
         )
         conn.commit()
     
@@ -70,8 +74,12 @@ def get_session_messages(session_id: str):
     """Gathers the sequential history payload to inject into the LLM context window"""
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute(
-            "SELECT role, content FROM messages WHERE session_id = ? ORDER BY timestamp ASC;",
+        cursor.execute("""
+            SELECT role, content, prompt_tokens, completion_tokens
+            FROM messages
+            WHERE session_id = ?
+            ORDER BY timestamp ASC
+        """,
             (session_id,)
         )
         return cursor.fetchall()

@@ -1,5 +1,12 @@
 # AegisAgent: The Sandboxed Autonomous AI Coder (TUI Workspace)
 
+![Python Version](https://img.shields.io/badge/python-3.14%2B-blue)
+![Architecture](https://img.shields.io/badge/Architecture-ReAct_Loop-8A2BE2)
+![Interface](https://img.shields.io/badge/UI-Textual_TUI-cyan)
+![Persistence](https://img.shields.io/badge/Database-SQLite-003B5C)
+![Security](https://img.shields.io/badge/Security-Human_in_the_Loop-brightgreen)
+![Package Manager](https://img.shields.io/badge/Package_Manager-uv-purple)
+
 ## Description
 
 AegisAgent is a modular, terminal-native AI development workspace engineered to manipulate, execute, and debug code autonomously within a secure environment. Instead of relying on rigid, one-shot code generation or tedious web interface copy-pasting, Aegis operates via an interactive **Text User Interface (TUI)** built on top of a dynamic **ReAct (Reasoning and Acting)** feedback loop. The agent plans its actions step-by-step, invokes real filesystem and system tools, reads execution outputs or traceback errors, and self-corrects until its objective is successfully achieved.

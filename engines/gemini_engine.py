@@ -2,7 +2,7 @@ import os
 from google import genai
 from google.genai import types
 
-def run_gemini(messages, avaialble_functions, system_propmt):
+def run_gemini(messages, available_functions, system_prompt):
     """Handle's the API calls to Google Gemini servers"""
     api_key = os.environ.get("GEMINI_API_KEY")
     client = genai.Client(api_key=api_key)
@@ -11,8 +11,8 @@ def run_gemini(messages, avaialble_functions, system_propmt):
         model="gemini-2.5-flash",
         content=messages,
         config=types.GenerateContentConfig(
-            tools=[avaialble_functions],
-            system_instruction=system_propmt,
+            tools=[available_functions],
+            system_instruction=system_prompt,
         ),
     )
     return response

@@ -38,6 +38,9 @@ def init_db():
                 FOREIGN KEY (session_id) REFERENCES sessions (id) ON DELETE CASCADE
             );
         """)
+
+        # 3. Optimization: Index for having even more faster session history lookups
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_seession_id ON messages(session_id);") 
         conn.commit()
 
 def create_session(session_id: str, title: str) -> None:

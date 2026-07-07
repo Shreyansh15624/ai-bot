@@ -1,96 +1,183 @@
-# AegisAgent: The Sandboxed Autonomous AI Coder
-
-![Python Version](https://img.shields.io/badge/python-3.14%2B-blue)
-![Architecture](https://img.shields.io/badge/Architecture-ReAct_Loop-8A2BE2)
-![Engines](https://img.shields.io/badge/Engines-Gemini_|_Ollama-FF8C00)
-![Security](https://img.shields.io/badge/Security-Strict_Sandboxing-brightgreen)
-![Package Manager](https://img.shields.io/badge/Package_Manager-uv-purple)
+# AegisAgent: The Sandboxed Autonomous AI Coder (TUI Workspace)
 
 ## Description
 
-AegisAgent (formerly ai-bot) is a highly modular, terminal-native AI agent engineered to manipulate, execute, and debug code autonomously. Built with a dynamic **ReAct (Reasoning and Acting)** feedback loop, the agent doesn't just write code—it actively tests it, reads the standard output/error traces, and self-corrects until the objective is achieved. 
+AegisAgent is a modular, terminal-native AI development workspace engineered to manipulate, execute, and debug code autonomously within a secure environment. Instead of relying on rigid, one-shot code generation or tedious web interface copy-pasting, Aegis operates via an interactive **Text User Interface (TUI)** built on top of a dynamic **ReAct (Reasoning and Acting)** feedback loop. The agent plans its actions step-by-step, invokes real filesystem and system tools, reads execution outputs or traceback errors, and self-corrects until its objective is successfully achieved.
 
-The architecture features a robust dual-engine system, allowing seamless switching between cloud-based reasoning (Google Gemini) and local, privacy-first execution (Ollama). To ensure host system integrity, the agent's file system access is strictly constrained by a cryptographic path-resolution sandbox, neutralizing directory traversal vulnerabilities while it autonomously manipulates the codebase.
+The platform abstracts cloud-based reasoning (Google Gemini) and local, privacy-first execution (Ollama) into a single unified workspace. To protect the host machine from autonomous execution risks, all filesystem actions are bound by a rigid path-resolution sandbox and monitored by an interactive, real-time security gatekeeper.
 
-**Key Engineering Features:**
-* **Dual-Engine Modularity:** Intercepts and maps Google GenAI function schemas to local Ollama JSON specifications dynamically via a custom `schema_mapper`.
-* **Context Propagation:** Sustains long-running ReAct loops by properly packaging and appending tool execution results (stdout/stderr) back into the LLM's context window.
-* **Strict OS Sandboxing:** Employs absolute path resolution and common-path validation (`is_safe_path`) to trap the AI within designated workspace directories.
-* **Safe Codebase Search:** Implements sub-process shell execution with strict timeout guillotines (`grep -r`) to allow the LLM to traverse large codebases without hanging the main thread.
+---
+> ### 🚧 Active Development & Pre-Alpha Notice
+> AegisAgent is currently undergoing active, rapid development and architectural refinement. While the core asynchronous ReAct engine, SQLite persistence layer, and basic Textual TUI layouts are functional, the codebase is in a pre-alpha state. Expect frequent breaking changes, UI polish updates, and tool schema evolutions. Features and configuration steps are being optimized daily to streamline collaborative local environments.
+---
 
-## Motivation
+## Core Architectural Features
 
-Standard web-based LLM interfaces require tedious copy-pasting and lack crucial filesystem context. Developers waste time acting as the "middleman" between the AI and the terminal. 
+### 1. Interactive Textual TUI Workspace
 
-I built this project to bridge that gap and bring the AI directly to the codebase. However, giving an LLM autonomous read/write/execute permissions is inherently dangerous. The core motivation was to engineer an AI that is both highly capable of manipulating real projects and mathematically constrained from touching anything outside its assigned sandbox. It is designed to be a transparent, rapid, and deterministic alternative to bloated commercial AI IDEs.
+Built using the `Textual` framework, the interface transforms the terminal into a full-fledged IDE dashboard:
+
+* **Dynamic Sidebar:** Features hot-swappable local model discovery via a live Ollama daemon scan, an industrial-grade workspace history loader, and runtime mode switches.
+* **Rich Operational Telemetry:** The main console employs a dedicated `RichLog` that prints step-by-step execution traces, exact tool argument telemetry, and millisecond-accurate model generation benchmarks.
+
+### 2. Dual-Engine Schema Mapping
+
+Aegis bridges cloud-scale reasoning and local inference out of the box. Through a custom `schema_mapper` engine, Google GenAI `FunctionDeclaration` structures are dynamically compiled down into standard local Ollama JSON tool specifications at runtime, allowing the exact same tool suite to work seamlessly across local or remote backends.
+
+### 3. Human-in-the-Loop & Headless Security
+
+To mitigate the risks of autonomous AI filesystem execution, Aegis implements two distinct security postures:
+
+* **Gatekeeper Mode (Default):** Before dangerous system tools (like `patch_file` or `run_python_file`) can execute, the TUI halts the main thread and throws a modal `GateKeeperScreen` requiring explicit user authorization via an asset-safe confirmation prompt.
+
+* **Headless Mode:** A persistent toggle switch that allows advanced developers to bypass the gatekeeper, granting the agent full, unprompted autonomy for accelerated debugging sprints.
+
+### 4. SQLite Session Persistence
+
+Every conversational turn, tool invocation, and token consumption profile is written to a local `aegis_memory.db` file driven by a structured SQLite indexing layer. This ensures that long-running debugging context is never lost across machine restarts.
+
+---
+
+## Project Topology
+
+```bash
+.
+├── aegis_memory.db            # SQLite persistent session database
+├── database.py                # Database drivers, indexing, and logging routines
+├── pyproject.toml             # uv package declaration and exact dependencies
+├── uv.lock                    # Deterministic lockfile
+├── tui_app.py                 # Core TUI Entrypoint (Textual Application)
+├── Makefile                   # Automation scripts for sandboxed environments
+├── engines/                   # Inference coordination layer
+│   ├── __init__.py
+│   ├── gemini_engine.py       # Cloud engine interface
+│   ├── ollama_engine.py       # Local daemon manager
+│   └── schema_mapper.py       # Dynamic tool schema conversion library
+├── functions/                 # Sandboxed tool suite (ReAct capabilities)
+│   ├── __init__.py
+│   ├── config.py              # Path resolution and is_safe_path bounds checking
+│   ├── delete_file.py         # Precision filesystem removal tool
+│   ├── get_code_outline.py    # High-efficiency Python AST outline compiler
+│   ├── get_file_content.py    # Targeted file reader
+│   ├── get_files_info.py      # Directory topology scanner
+│   ├── git_manager.py         # Subprocess Git state tracking interface
+│   ├── patch_file.py          # Surgical exact-match string block editing utility
+│   ├── run_python_file.py     # Subprocess runner with execution trace trapping
+│   └── search_codebase.py     # Grep-driven high-speed codebase searching tool
+├── templates/                 # Pristine testing environments
+│   └── calculator/
+└── projects/                  # Active runtime sandboxes (AI Workspace Target)
+    └── calculator/
+
+```
+
+---
 
 ## Quick Start
 
-The project relies on `uv` for deterministic, lightning-fast dependency resolution.
+Aegis relies on the `uv` package manager for deterministic environment resolution.
 
-**Prerequisites:**
-* Python 3.14+
+### Prerequisites
+
+* Python `3.14+`
 * [uv package manager](https://github.com/astral-sh/uv)
-* Google Gemini API Key (for Cloud execution)
-* Ollama installed locally (for Local execution)
+* Ollama Daemon running locally (for local models)
+* Google Gemini API Key (for cloud models)
 
-**Installation:**
-1. Clone the repository and navigate into the project:
+### Setup & Onboarding
+
+1. **Clone the Repository:**
    ```bash
-   git clone https://github.com/yourusername/ai-bot
-   cd ai-bot
+   git clone https://github.com/Shreyansh15624/aegis-agent.git
+   cd aegis-agent
    ```
 
-2. Sync the environment and install dependencies natively via `uv`:
+
+2. **Establish the Environment & Dependencies:**
+Utilize `uv` to instantly compile the virtual environment and sync the exact dependency graph:
    ```bash
    uv sync
    ```
 
 
-3. Create a `.env` file in the root directory and add your API key:
+3. **Configure Environment Secrets:**
+Create a `.env` file in the project root directory:
    ```env
-   GEMINI_API_KEY="your_api_key_here"
+   GEMINI_API_KEY="your_production_api_key_here"
+   ```
 
+
+4. **Initialize the Sandbox Infrastructure:**
+Run the setup script via the `Makefile` to securely clear out old runs and provision a pristine workspace:
+   ```bash
+   make reset
+   ```
+
+
+5. **Boot the Workspace TUI:**
+Execute the core application context directly through `uv`:
+   ```bash
+   uv run tui_app.py
    ```
 
 
 
-## Usage
+---
 
-The orchestrator (`main.py`) handles the user prompt, routing it to either the cloud or local engine based on the master toggle.
+## Technical Workflows
 
-**Selecting the Engine:**
-Inside `main.py`, modify the global toggle to choose your execution environment:
+### Operating within the ReAct Loop
 
+When you enter a task in the input field (e.g., *"Find the bug in compound_interest.py, fix it, and verify by running tests"*), Aegis executes the following sequence:
+
+```md
+  [ User Prompt Entered ] 
+             │
+             ▼
+    ┌─────────────────┐
+    │  Reasoning Loop │◄────────────────────────┐
+    └────────┬────────┘                         │
+             │ (Determines Action Needed)       │
+             ▼                                  │
+    ┌─────────────────┐                         │
+    │ Tool Invocation │                         │
+    └────────┬────────┘                         │
+             │                                  │
+   [ Headless Mode Active? ]                    │
+      ├── No  ──► [ Show Gatekeeper Modal ]     │
+      │                  │ (User Approves)      │
+      │                  ▼                      │
+      └── Yes ──► [ Safe Path Evaluation ]      │
+                         │                      │
+                         ▼                      │
+             ┌───────────────────────┐          │
+             │   Execute Tool in     │          │
+             │  projects/ Sandbox    │          │
+             └───────────┬───────────┘          │
+                         │                      │
+                         ▼                      │
+             [ Trap stdout / stderr ] ──────────┘
+                         │ (Loop completes/Success)
+                         ▼
+             [ Render Final Response ]
+
+```
+
+### Developing & Injecting New Tools
+
+The tool suite is heavily decoupled, making it incredibly simple to write extensions:
+
+1. **Write the Core Routine:** Create a standalone Python file within the `functions/` directory. Ensure it imports and implements the core security path verification checks from `functions/config.py`:
 ```python
-# Set to True for Ollama (Local), False for Gemini (Cloud)
-USE_LOCAL_MODEL = True 
+# Example snippet inside a new file: functions/create_directory.py
+from functions.config import is_safe_path
+
+def create_directory(working_directory: str, folder_name: str):
+    # Always validate that the action is mathematically locked inside the sandbox
+    # ... your code here ...
 
 ```
 
-**Executing an Autonomous Task:**
-Simply run the orchestrator and pass your prompt. The agent is strictly locked to the `projects/` directory sandbox.
 
-```bash
-uv run main.py "Review the calculator project, find the bug in the division logic, write the fix, and run the tests.py file to verify."
-
-```
-
-**How it works under the hood:**
-
-1. The agent reads the prompt and determines it needs to use `get_files_info`.
-2. It lists the directory, then calls `get_file_content` on `calculator.py`.
-3. It identifies the logic error and calls `write_file` to inject the corrected code.
-4. It calls `run_python_file` on `tests.py`. If tests fail, it reads the traceback and loops back to step 3. If they pass, it exits gracefully.
-
-## Contributing
-
-The repository is structured to prioritize modularity, cleanly separating engines, tools, and sandboxed projects.
-
-**Adding New Tools:**
-
-1. Create a new python script inside the `functions/` directory (e.g., `git_commit.py`).
-2. Define your python function and its associated GenAI `FunctionDeclaration` schema.
-3. Import the schema into `main.py` and append it to the `available_functions` list. The `schema_mapper` will automatically ensure it works for both Gemini and Ollama!
-
-If you build a new tool or optimize the ReAct context propagation, feel free to open a Pull Request. Please ensure your tools strictly utilize the `is_safe_path` validator from `config.py` to maintain sandbox integrity.
+2. **Define the Schema:** Author an explicit Google GenAI `FunctionDeclaration` dictionary matching the parameters of your routine.
+3. **Register the Capability:** Import both your function and its declaration schema into `tui_app.py`, then append the declaration object directly into the `available_function_schemas` list. The engine's mapping layer will handle the rest.
